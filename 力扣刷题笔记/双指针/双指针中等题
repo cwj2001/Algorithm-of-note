@@ -1,0 +1,360 @@
+## 31.下一个排列
+
+题目
+
+![image-20210928002610582](双指针中等题.assets/image-20210928002610582.png)![image-20210928002621655](双指针中等题.assets/image-20210928002621655.png)
+
+##### 方法一：单调栈+数组反转-->双指针
+
+思路分析：对于这道题，我们需要找到下一个较大的字典序的排序；其中整数的字典序就是：将数组的数排列在一起形成一个整数，其中然后我们改变数组排序后，会形成一个新的整数，而如果其新的数比原合成的数大， 就说新数组的字典序较大
+
+* 例子：[1,2,3,4]<[1,2,4,3];
+
+知道字典序的含义后，我们就要变化数组了，而因为我们是想要变化后的数组的字典序刚刚好大于原数组(即下一个较大的字典序);那么就要尽量在低位做位置交换，保证对其改变更小，所以我们要由后往前遍历；另外因为要保证被交换到高位的数尽可能的小(但必须比原位置的大)；即我们就可以首先找到最靠近队尾的两个相邻递增序列；递增序列的第一个位置就是可以做交换的最低位置，但其相邻的数却不一定是位置在它后面，且大于它的最小数，所以我们就可以再次将指向第二个位置的指针往往后移动(而后面的序列肯定是递减的，因为如果有递增的话，那么我们在那里就会停止向前遍历)，所以我们就找到后面恰好大于第一个位置的数，然后进行交换，这样形成的数组是大于原数组的，其对高位的影响最小，但是这个不是恰好大于原数组的数组，因为我们在交换位置后，前面的位置保存不变，无论后面的位置怎么变化，其永远大于原数组，而由前面的分析可以知道，其后面是升序的，我们就可以通过反转这部分的元素，让其降序以达到最小的；
+
+上面的分析其实我们没有提及单调栈，但其里面暗含单调栈的存在，我也是由单调栈那边联想到上面的分析，但因为我们仅仅需要使用一次单调栈，所以我们就完全可以用双指针去模拟单调栈的作用以达到优化效果
+
+```java
+class Solution {
+    public void nextPermutation(int[] nums) {
+        int left=-1,right=nums.length-1,cur=0;
+        //知道最后的升序序列
+        for (int i = nums.length-2; i >=0 ; i--) {
+            if(nums[i]<nums[i+1]){
+                cur=right=i+1;
+                left=i;
+                break;
+            }
+        }
+        //如果数组字典序最大，就反转
+        if(left==-1){
+//            left=0;right=nums.length-1;
+            swapList(nums,0,nums.length-1);
+            return ;
+        }
+        //需要可以交换的最小数
+        cur+=1;
+        while((cur)<nums.length&&left>=0){
+            if(nums[cur]<=nums[left]){
+                break;
+            }
+            right=cur;
+            cur+=1;
+        }
+        //交换元素，以及反转后面的递减序列
+        swap(nums,left,right);
+        swapList(nums,left+1,nums.length-1);
+    }
+    //反转选定区间的数组
+    void swapList(int[]nums,int left,int right){
+        while(left<right){
+            swap(nums,left,right);
+            left+=1;
+            right-=1;
+        }
+    }
+	//交换元素
+    void swap(int[]nums,int n1,int n2){
+        nums[n1]^=nums[n2];
+        nums[n2]^=nums[n1];
+        nums[n1]^=nums[n2];
+    }
+
+}
+
+```
+
+时间复杂度：O(n+n);
+
+空间复杂度：O(1);
+
+
+
+## 16.最接近的三数之和
+
+题目
+
+![image-20210928120452093](双指针中等题.assets/image-20210928120452093.png)
+
+##### 方法一：枚举+双指针
+
+思路分析：对于这道题，和前面的`三数之和`是一模一样的，但仅仅是加了一个判断，但因为前面的`三数之和`未纳入笔记中，所以下面依旧由零讲起
+
+对于这道题来说：最简单的做法就是三重嵌套枚举数组元素，但对于1000数据量而言，这个方法肯定不能；因为我们是想要得到一个数值(且关注的是这个数值与target的大小变化)，那么我们就可以对这个数组进行排序，我们第一个数依旧采用枚举的方式即nums[i];那么问题就转变为我们要找最靠近target-nums[i]
+
+* 问题一：何为最靠近？
+
+  差的绝对值最小
+
+* 问题二：如何优化原本枚举后面两个数的嵌套循环？
+
+  双指针；
+
+  * 首先对数值排序，然后准备两个指针，一个在left=i+1,一个在队尾right=nums.length;
+
+  * 接着判断sum=nums[i]+nums[left]+nums[right]
+
+    如果相等，就可以直接返回结果，因为没有比其更接近target的
+
+    如果大于，即right-=1;让sum变小
+
+    如果小于，则left+=1,让sum变大
+
+    这样当rigth>=left,就枚举结束
+
+  * 这样我们就可以完成对后两个数的枚举
+
+* 还有什么可以优化的吗？
+
+  优化一：降重
+
+  * 因为我们的数组是排好序的，所以相等的元素就都是挤在一起的，我们在第一层枚举时，就仅仅需要枚举不重复的每个元素，但因为所取得三个数是可以重复的，如[1,1,1];所以在双指针层的去重就要比较小心，即对于双指针层，参见下图(`注意下图是没有排序的数组，仅关注去重部分即可`)，这个就是我们可以取得重复数字的指针指向，但这个取法就在取过一次后就没有了；
+
+  * 小问题1：为什么去重前，i要放在重复元素的最左边，而不是最右边?
+
+    因为如果在最右边，而跳过左边部分，那么left和right指针就不可能再次取到等于nums[i]的值了，但我们的结果是允许等于的，否则会少了一种情况
+
+    ![image-20210928123251388](双指针中等题.assets/image-20210928123251388.png)
+
+    
+
+  优化二：界限判断法
+
+  * 因为我们的数组的排好序的，所以$(min=nums[left]+nums[left-1])<nums[left]+nums[right]<(max=nums[right-1]+nums[right])$
+  * 如果min>target,那么right就不需要再移动了，因为不可能比min更接近target的了
+  * 如果max<target，和上面同理
+
+代码
+
+```java
+class Solution {
+    public int threeSumClosest(int[] nums, int target) {
+        if (nums.length < 3) {
+            throw new RuntimeException("数据出错");
+        }
+        //排序
+        Arrays.sort(nums);
+        int result = nums[0] + nums[1] + nums[2];
+        for (int i = 0; i < nums.length; i++) {
+            //降重
+            if (i > 0 && nums[i] == nums[i - 1]) {
+                continue;
+            }
+            int left = i + 1, right = nums.length - 1;
+            while (left < right) {
+                //判断最小值
+                int min = nums[left] + nums[left + 1] + nums[i];
+                if (min > target) {
+                    result = Math.abs(min - target) < Math.abs(result - target) ? min : result;
+                    break;
+                }
+                //判断最大值
+                int max = nums[right] + nums[right - 1] + nums[i];
+                if (max < target) {
+                    result = Math.abs(max - target) < Math.abs(result - target) ? max : result;
+                    break;
+                }
+                //降重
+                if (left > i + 1 && nums[left] == nums[left - 1]) {
+                    left += 1;
+                    continue;
+                } else if (right < nums.length - 1 && nums[right] == nums[right + 1]) {
+                    right -= 1;
+                    continue;
+                }
+                //实际计算
+                int sum = (nums[i] + nums[left] + nums[right]);
+                if (Math.abs(sum - target) < Math.abs(result - target)) {
+                    result = sum;
+                }
+                //如果有等于target的，就可以直接返回，因为没有比它更小的了
+                if (sum == target) {
+                    return sum;
+                } else if (sum < target) {
+                    left += 1;
+                } else {
+                    right -= 1;
+                }
+            }
+        }
+        return result;
+    }
+}
+```
+
+## 82.删除排序链表中的重复元素||
+
+题目
+
+![image-20210930140623841](双指针中等题.assets/image-20210930140623841.png)![image-20210930140637261](双指针中等题.assets/image-20210930140637261.png)
+
+
+
+### 方法一：双指针
+
+对于这道题
+
+
+
+## 443.压缩字符串
+
+题目
+
+![image-20211003142242876](双指针中等题.assets/image-20211003142242876.png)
+
+### 方法一：双指针
+
+对于这道题比较通用的方法就是使用哈希表，但是其会使用额外的空间，不符合题意，所以我们就可以使用双指针，一个为读指针，一个为写指针，前者复杂遍历时的读取，后者复杂计算结果是写入；而为了比如写的部分影响到后面的，那么就需要保证write<=read;下面有三种代码写法，整体思路一样，但每一种都有值得学习的地方
+
+```java
+class Solution {
+    public int compress(char[] chars) {
+        if(chars.length==0){
+            return 0;
+        }
+        int resPtr=0;//写指针
+        int cur=0;//读指针
+        int count=0;//每个字符的计数器
+        boolean flag=false;//是否有重复
+        boolean isFirst=true;//前面的重复是否结束了；是否是第一个：该变量是为了避免前两个记录字母数目的数字和后面的字符重复；
+        for ( cur = 0; cur < chars.length; cur+=1) {
+            //isFirst的存在是因为我们的判断为chars[cur-1]==chars[cur]；
+            // 而这就导致前面的写操作可能会影响到后面的计算；所以要额外设置一个标志来消除这种影响
+            while(!isFirst&&cur<chars.length&&chars[cur-1]==chars[cur]){
+                flag=true;
+                count+=1;
+                cur+=1;
+            }
+            //如果前面有重复就要写入数字
+            if(flag){
+                flag=false;
+                //将数字写入字符串，并返回操作后写指针的位置
+                resPtr=intToChars(chars,resPtr,count);
+                isFirst=true;
+            }
+            //isFirst需要判断无需解释；而chars[cur-1]!=chars[cur]需要判断是因为如果连续几个不相同的字母在一起时，
+            // isFirst无法得到及时的判断；因为isFirst的更改是需要进入前面的if(flag)判断中的；
+            if(cur<chars.length&&(isFirst||chars[cur-1]!=chars[cur])){
+                isFirst=false;
+                System.out.println("resPtr="+resPtr+"\tcur="+cur);
+                chars[resPtr++]=chars[cur];
+                count=1;
+            }
+        }
+        return resPtr;
+    }
+    //这个函数没有使用常数空间；但可以通过反转操作来修正这个缺陷；
+    int intToChars(char[]chars,int start,int one){
+        StringBuilder str=new StringBuilder();
+        while(one!=0){
+            str.append((char)(((one%10)+'0')));
+            one/=10;
+        }
+        for (int i = str.length()-1; i >=0 ; i--) {
+            chars[start++]= str.charAt(i);
+        }
+        return start;
+    }
+
+}
+```
+
+代码2
+
+```java
+class Solution {
+    public int compress(char[] chars) {
+        int n = chars.length;
+        int write = 0, left = 0;
+        for (int read = 0; read < n; read++) {
+            //这个的亮点就在于其用chars[read] != chars[read + 1]判断，这个就自动消除了写操作可能造成的影响
+            //其是在连续重复序列的最后一个数时进入判断中；
+            if (read == n - 1 || chars[read] != chars[read + 1]) {
+                chars[write++] = chars[read];
+                int num = read - left + 1;
+                //即重复次数大于1；
+                if (num > 1) {
+                    //即将数字写入字符串(使用常量空间)
+                    int anchor = write;
+                    while (num > 0) {
+                        chars[write++] = (char) (num % 10 + '0');
+                        num /= 10;
+                    }
+                    reverse(chars, anchor, write - 1);
+                }
+                left = read + 1;
+            }
+        }
+        return write;
+    }
+
+    public void reverse(char[] chars, int left, int right) {
+        while (left < right) {
+            char temp = chars[left];
+            chars[left] = chars[right];
+            chars[right] = temp;
+            left++;
+            right--;
+        }
+    }
+}
+//参考力扣官方题解所得
+```
+
+代码3
+
+```java
+class Solution {
+    public int compress(char[] chars) {
+        int ans = 0;
+        int n = chars.length;
+        if(n == 1){
+            return 1;
+        }
+        int j=0;
+        for(int i=0;i<n;i++){
+            //其亮点在于此：和前面两个不同，其不是通过前后的字符关系来判断，而是通过每个连续重复序列的第一个来判断其后面有多少重复的；
+            char curchar = chars[i];
+            int curlen = 1;
+            i++;
+            while(i<n&&chars[i]==curchar){
+                curlen++;
+                i++;
+            }
+            i--;
+            chars[j] = curchar;
+            j++;
+            if(curlen>1){
+                int begin = j;
+                int end = j;
+                while(curlen>0){
+                    chars[j] = (char)(curlen%10+'0');
+                    end = j;
+                    curlen/=10;
+                    j++;
+                }
+                reverse(chars, begin, end);
+            }
+
+        }
+        return j;
+    }
+    public void reverse(char[] chars, int l, int r){
+        while(l<r){
+            char tmp = chars[l];
+            chars[l] = chars[r];
+            chars[r] = tmp;
+            l++;
+            r--;
+        }
+    }
+}
+
+```
+
+其三段代码的亮点就被注解点出，可参考学习
+
+时间复杂度：O(n)
+
+空间复杂度：O(1)
+
